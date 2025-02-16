@@ -3,6 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+# ========== CONFIGURATION ==========
+BACKGROUND_MODE = "auto"
+# Options:
+#  - "auto" : Use 'bg.png' if it exists, else white
+#  - "white": Force plain white background
+#  - "transparent": Output PNG with alpha channel (no background)
+# ===================================
+
 def generate_sinewave_points(width, height,
                              n_points=3000,
                              random_seed=42,
@@ -79,36 +87,54 @@ def main():
     # Try to load "bg.png". If not found, we'll default to a white background.
     bg_file = "bg.png"
     bg_img = None
-    if os.path.isfile(bg_file):
-        bg_img = mpimg.imread(bg_file)  # Found the file
     
-    # If we have a background image, get its dimensions; otherwise define a "virtual" size.
+    # If background mode is "auto," try to load bg.png; otherwise skip
+    if BACKGROUND_MODE == "auto":
+        if os.path.isfile(bg_file):
+            bg_img = mpimg.imread(bg_file)
+        else:
+            bg_img = None
+    elif BACKGROUND_MODE == "white":
+        bg_img = None
+    elif BACKGROUND_MODE == "transparent":
+        bg_img = None
+    else:
+        raise ValueError(f"Unknown BACKGROUND_MODE: {BACKGROUND_MODE}")
+
+    # If we have an image, use its dimensions; else pick a default
     if bg_img is not None:
         img_height, img_width = bg_img.shape[:2]
     else:
-        # Define a default dimension for our plain white canvas if no image is provided
-        img_width, img_height = 1584, 396  # e.g., LinkedIn recommended ratio
-    
+        # A default dimension for the banner
+        img_width, img_height = 1584, 396
+
     # Prepare the figure
-    base_width_in = 15.84  # 15.84" wide
+    base_width_in = 15.84
     ratio = img_height / img_width
     fig_height_in = base_width_in * ratio
     dpi_val = 300
     scatter_factor = 0.05 # defaults to 5% of width/height
     
     fig, ax = plt.subplots(figsize=(base_width_in, fig_height_in), dpi=dpi_val)
-    
-    # If a background image exists, display it
+
+    # Handle the background
     if bg_img is not None:
+        # Show the image
         ax.imshow(bg_img,
                   extent=[0, img_width, 0, img_height],
                   origin='upper',
                   aspect='auto')
+        # Facecolors default to white under the image
     else:
-        # No background image, so just ensure the facecolor is white
-        fig.patch.set_facecolor('white')
-        ax.set_facecolor('white')
-        # We won't do an imshow() here
+        # No bg image
+        if BACKGROUND_MODE == "transparent":
+            # Transparent background
+            fig.patch.set_facecolor('none')
+            ax.set_facecolor('none')
+        else:
+            # Plain white background
+            fig.patch.set_facecolor('white')
+            ax.set_facecolor('white')
 
     # Generate the sine wave points
     points, t_values = generate_sinewave_points(
@@ -119,25 +145,26 @@ def main():
         amplitude_factor=0.3,   # wave height relative to image height
         scatter_factor=scatter_factor     # scatter around the wave
     )
-    
-    # Scatter the points, color by t-values
-    ax.scatter(points[:, 0],
-               points[:, 1],
-               c=t_values,
-               cmap='viridis',  # or 'plasma', 'magma', etc.
-               alpha=0.7,
-               s=20,
-               edgecolor='none')
-    
-    # Remove axes for a clean look
+
+    # Plot
+    sc = ax.scatter(points[:, 0],
+                    points[:, 1],
+                    c=t_values,
+                    cmap='viridis',  # or 'plasma', 'magma', etc.
+                    alpha=0.7,
+                    s=20,
+                    edgecolor='none')
+
     ax.set_axis_off()
-    
-    # Align axes with the full area
     ax.set_xlim(0, img_width)
     ax.set_ylim(img_height, 0)
-    
-    # Save the final banner
-    plt.savefig("banner.png", bbox_inches='tight', pad_inches=0)
+
+    # If background is transparent, we must specify transparent=True to preserve alpha
+    save_kwargs = {}
+    if BACKGROUND_MODE == "transparent":
+        save_kwargs["transparent"] = True
+
+    plt.savefig("banner.png", bbox_inches='tight', pad_inches=0, **save_kwargs)
     plt.close(fig)
 
 if __name__ == "__main__":
