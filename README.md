@@ -83,6 +83,8 @@ This project is licensed under the **MIT License**, meaning you can freely use, 
 ## ❤️ Credits
 
 Created by AliD101v
+
 `bg.png` by ©Ermedia Studio via [Canva.com](https://www.canva.com/)
+
 If you find this useful, ⭐ **star this repo** and feel free to **share your banners!** 🚀
 
